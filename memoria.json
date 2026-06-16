@@ -1,0 +1,18 @@
+[
+  {
+    "role": "user",
+    "content": "[DATOS DEL SISTEMA OPERATIVO — HORA: 09:13 PM | FECHA: Monday 15 de June de 2026]\nInstrucción del usuario: dime la hora actual en cd juarez\n\nResponde directamente la instrucción usando los datos anteriores si es necesario:"
+  },
+  {
+    "role": "assistant",
+    "content": "Hey bro, hoy son las 9:13 PM en CD Juárez. ¿En qué puedo ayudarte más?"
+  },
+  {
+    "role": "user",
+    "content": "[DATOS DEL SISTEMA OPERATIVO — HORA: 09:14 PM | FECHA: Monday 15 de June de 2026]\nInstrucción del usuario: 5+5+5\n\nResponde directamente la instrucción usando los datos anteriores si es necesario:"
+  },
+  {
+    "role": "assistant",
+    "content": "La suma de 5 más 5 más 5 es igual a 15. ¿Hay algo más en lo que pueda asistirte?"
+  }
+]

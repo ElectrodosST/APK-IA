@@ -1,0 +1,470 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Mi Asistente IA</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+<div class="sidebar">
+  <button id="btn-nuevo-chat" class="btn-nuevo-chat">+ Nuevo Chat</button>
+  <div id="lista-chats" class="lista-chats">
+    </div>
+</div>
+
+<div class="main-layout">
+  <canvas id="particles-canvas"></canvas>
+
+  <header>
+    <div class="logo">
+      <div class="logo-icon" id="logo-icon">🤖</div>
+      <div class="logo-info">
+        <span class="logo-name">Mi Asistente IA</span>
+        <span class="logo-sub">Powered by Ollama · Multi-Chat</span>
+      </div>
+    </div>
+    <div class="header-right">
+      <div class="status-badge">
+        <span class="status-dot"></span>
+        <span>En línea</span>
+      </div>
+      <button id="clear-btn">
+        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+          <polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14H6L5 6"/>
+          <path d="M10 11v6"/><path d="M14 11v6"/><path d="M9 6V4h6v2"/>
+        </svg>
+        Borrar Chat
+      </button>
+    </div>
+  </header>
+
+  <main id="chat-box">
+    <div class="welcome-screen" id="welcome-screen">
+      <div class="welcome-glow"></div>
+      <div class="welcome-icon">✨</div>
+      <h2 id="typewriter-text"></h2>
+      <p class="welcome-sub">Elige una opción o escríbeme directamente</p>
+      <div class="quick-chips" id="chips-container">
+        <button class="chip" data-action="calc">🧮 Calcular</button>
+        <button class="chip" data-action="clima">🌤 Ver clima</button>
+        <button class="chip" data-action="nota">📝 Guardar nota</button>
+        <button class="chip" data-action="hora">🕐 Fecha y hora</button>
+      </div>
+    </div>
+  </main>
+
+  <div id="action-modal" class="modal-overlay hidden">
+    <div class="modal-box">
+      <button class="modal-close" id="modal-close">✕</button>
+      <div class="modal-icon" id="modal-icon"></div>
+      <h3 id="modal-title"></h3>
+      <p id="modal-desc"></p>
+      <input type="text" id="modal-input" placeholder="" autocomplete="off" />
+      <button id="modal-send">Enviar</button>
+    </div>
+  </div>
+
+  <footer>
+    <div class="input-wrapper" id="input-wrapper">
+      <textarea id="user-input" placeholder="Escribe un mensaje..." rows="1" autocomplete="off"></textarea>
+      <button id="send-btn" aria-label="Enviar mensaje">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor">
+          <path d="M2.01 21L23 12 2.01 3 2 10l15 2-15 2z"/>
+        </svg>
+      </button>
+    </div>
+    <p class="footer-hint">Presiona <kbd>Enter</kbd> para enviar · <kbd>Shift+Enter</kbd> nueva línea</p>
+  </footer>
+</div>
+
+<script>
+// IDENTIFICADOR GLOBAL DEL CHAT ACTIVO
+let idChatActual = localStorage.getItem('id_chat_actual') || 'chat_' + Date.now();
+localStorage.setItem('id_chat_actual', idChatActual);
+
+const API_URL   = ' 192.168.100.50';
+const chatBox   = document.getElementById('chat-box');
+const userInput = document.getElementById('user-input');
+const sendBtn   = document.getElementById('send-btn');
+const clearBtn  = document.getElementById('clear-btn');
+
+// ═══════════════════════════════════════════
+// PARTÍCULAS
+// ═══════════════════════════════════════════
+(function() {
+  const canvas = document.getElementById('particles-canvas');
+  const ctx = canvas.getContext('2d');
+  function resize() { canvas.width = canvas.parentElement.offsetWidth; canvas.height = canvas.parentElement.offsetHeight; }
+  resize();
+  window.addEventListener('resize', resize);
+  const particles = Array.from({length: 55}, () => {
+    return {
+      reset(init) {
+        this.x = Math.random() * canvas.width;
+        this.y = init ? Math.random() * canvas.height : canvas.height + 10;
+        this.size = Math.random() * 2.2 + 0.4;
+        this.speedY = Math.random() * 0.4 + 0.1;
+        this.speedX = (Math.random() - 0.5) * 0.3;
+        this.opacity = Math.random() * 0.5 + 0.1;
+        this.hue = Math.random() > 0.5 ? 260 : 190;
+      },
+      update() { this.y -= this.speedY; this.x += this.speedX; if (this.y < -10) this.reset(false); },
+      draw() {
+        ctx.beginPath();
+        ctx.arc(this.x, this.y, this.size, 0, Math.PI * 2);
+        ctx.fillStyle = `hsla(${this.hue},80%,70%,${this.opacity})`;
+        ctx.fill();
+      }
+    };
+  });
+  particles.forEach(p => p.reset(true));
+  (function loop() {
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    particles.forEach(p => { p.update(); p.draw(); });
+    requestAnimationFrame(loop);
+  })();
+})();
+
+// ═══════════════════════════════════════════
+// TYPEWRITER
+// ═══════════════════════════════════════════
+function initTypewriter() {
+  const el = document.getElementById('typewriter-text');
+  if(!el) return;
+  const texto = 'Hola, ¿en qué te ayudo hoy?';
+  let i = 0;
+  el.textContent = '';
+  function escribir() {
+    if(!document.getElementById('typewriter-text')) return;
+    el.textContent = texto.slice(0, i);
+    el.style.borderRight = i < texto.length ? '2px solid #a78bfa' : 'none';
+    if (i <= texto.length) { i++; setTimeout(escribir, 55); }
+  }
+  setTimeout(escribir, 400);
+}
+
+// ═══════════════════════════════════════════
+// CONTROL DE LA BIBLIOTECA DE CHATS
+// ═══════════════════════════════════════════
+async function cargarBiblioteca() {
+  try {
+    const res = await fetch(`${API_URL}/chats`);
+    const data = await res.json();
+    const contenedor = document.getElementById('lista-chats');
+    contenedor.innerHTML = '';
+
+    if (data.chats.length === 0) {
+      inyectarBotonChat(idChatActual, "Conversación Activa");
+      return;
+    }
+
+    let encontrado = false;
+    data.chats.forEach(chat => {
+      if(chat.id === idChatActual) encontrado = true;
+      let nombreLimpio = chat.titulo.replace('Chat chat_', 'Chat ');
+      inyectarBotonChat(chat.id, nombreLimpio);
+    });
+
+    if(!encontrado) {
+      inyectarBotonChat(idChatActual, "Conversación Activa", true);
+    }
+  } catch {
+    console.log("No se pudo conectar a la base de datos de la biblioteca.");
+  }
+}
+
+function inyectarBotonChat(id, titulo, alInicio = false) {
+  const contenedor = document.getElementById('lista-chats');
+  const btn = document.createElement('button');
+  btn.className = `item-chat ${id === idChatActual ? 'activo' : ''}`;
+  btn.innerText = titulo;
+  btn.onclick = () => cambiarDeChat(id);
+  
+  if(alInicio) contenedor.insertBefore(btn, contenedor.firstChild);
+  else contenedor.appendChild(btn);
+}
+
+async function cambiarDeChat(id) {
+  idChatActual = id;
+  localStorage.setItem('id_chat_actual', id);
+  chatBox.innerHTML = '';
+  
+  const welcome = document.createElement('div');
+  welcome.className = 'welcome-screen';
+  welcome.id = 'welcome-screen';
+  welcome.innerHTML = `
+    <div class="welcome-glow"></div>
+    <div class="welcome-icon">✨</div>
+    <h2 id="typewriter-text"></h2>
+    <p class="welcome-sub">Elige una opción o escríbeme directamente</p>
+    <div class="quick-chips" id="chips-container">
+      <button class="chip" data-action="calc">🧮 Calcular</button>
+      <button class="chip" data-action="clima">🌤 Ver clima</button>
+      <button class="chip" data-action="nota">📝 Guardar nota</button>
+      <button class="chip" data-action="hora">🕐 Fecha y hora</button>
+    </div>`;
+  chatBox.appendChild(welcome);
+  
+  welcome.querySelectorAll('.chip').forEach(chip => {
+    addRipple(chip);
+    chip.addEventListener('click', () => openModal(chip.dataset.action));
+  });
+
+  initTypewriter();
+  await loadHistoryOfChat(id);
+  await cargarBiblioteca();
+}
+
+document.getElementById('btn-nuevo-chat').onclick = () => {
+  const nuevoId = 'chat_' + Date.now();
+  cambiarDeChat(nuevoId);
+};
+
+// ═══════════════════════════════════════════
+// RIPPLE ANIMATION
+// ═══════════════════════════════════════════
+function addRipple(btn) {
+  btn.addEventListener('click', function(e) {
+    const s = document.createElement('span');
+    s.className = 'ripple';
+    const r = btn.getBoundingClientRect();
+    const sz = Math.max(r.width, r.height);
+    s.style.cssText = `width:${sz}px;height:${sz}px;left:${e.clientX-r.left-sz/2}px;top:${e.clientY-r.top-sz/2}px`;
+    btn.appendChild(s);
+    setTimeout(() => s.remove(), 600);
+  });
+}
+
+// ═══════════════════════════════════════════
+// MODAL DE ACCIÓN
+// ═══════════════════════════════════════════
+const ACCIONES = {
+  calc:  { icon: '🧮', title: 'Calculadora', desc: 'Escribe tu operación matemática', placeholder: 'Ej: 128 / 4 + 15', msg: (v) => `Calcula esto: ${v}` },
+  clima: { icon: '🌤', title: 'Clima',        desc: '¿De qué ciudad quieres saber el clima?', placeholder: 'Ej: Monterrey, CDMX, Madrid', msg: (v) => `¿Qué clima hay en ${v}?` },
+  nota:  { icon: '📝', title: 'Guardar nota', desc: '¿Qué quieres que anote?', placeholder: 'Ej: Tengo reunión a las 3pm', msg: (v) => `Anota que ${v}` },
+  hora:  { icon: '🕐', title: 'Fecha y hora', desc: null, placeholder: null, msg: () => '¿Qué día es hoy y qué hora es?' },
+};
+
+const modal      = document.getElementById('action-modal');
+const modalClose = document.getElementById('modal-close');
+const modalIcon  = document.getElementById('modal-icon');
+const modalTitle = document.getElementById('modal-title');
+const modalDesc  = document.getElementById('modal-desc');
+const modalInput = document.getElementById('modal-input');
+const modalSend  = document.getElementById('modal-send');
+
+function openModal(action) {
+  const cfg = ACCIONES[action];
+  modalIcon.textContent  = cfg.icon;
+  modalTitle.textContent = cfg.title;
+
+  if (cfg.desc) {
+    modalDesc.textContent   = cfg.desc;
+    modalDesc.style.display = 'block';
+    modalInput.placeholder  = cfg.placeholder;
+    modalInput.style.display = 'block';
+    modalInput.value = '';
+  } else {
+    modalDesc.style.display  = 'none';
+    modalInput.style.display = 'none';
+  }
+
+  modal.classList.remove('hidden');
+  modal.classList.add('show');
+  if (cfg.desc) setTimeout(() => modalInput.focus(), 200);
+
+  modalSend.onclick = () => {
+    const val = modalInput.value.trim();
+    if (cfg.desc && !val) { modalInput.classList.add('shake'); setTimeout(() => modalInput.classList.remove('shake'), 400); return; }
+    closeModal();
+    sendMessage(cfg.msg(val));
+  };
+
+  modalInput.onkeydown = (e) => { if (e.key === 'Enter') modalSend.click(); };
+}
+
+function closeModal() {
+  modal.classList.remove('show');
+  setTimeout(() => modal.classList.add('hidden'), 250);
+}
+
+modalClose.addEventListener('click', closeModal);
+modal.addEventListener('click', (e) => { if (e.target === modal) closeModal(); });
+
+document.querySelectorAll('.chip').forEach(chip => {
+  addRipple(chip);
+  chip.addEventListener('click', () => openModal(chip.dataset.action));
+});
+
+// ═══════════════════════════════════════════
+// OPERATORIA DEL CHAT
+// ═══════════════════════════════════════════
+function getTime() {
+  return new Date().toLocaleTimeString('es-MX', {hour:'2-digit', minute:'2-digit'});
+}
+
+function removeWelcome() {
+  const w = document.getElementById('welcome-screen');
+  if (!w) return;
+  w.style.cssText = 'opacity:0;transform:scale(0.96);transition:opacity 0.3s ease,transform 0.3s ease';
+  setTimeout(() => w.remove(), 300);
+}
+
+function formatText(text) {
+  return text
+    .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
+    .replace(/\*(.*?)\*/g, '<em>$1</em>')
+    .replace(/`(.*?)`/g, '<code>$1</code>')
+    .replace(/\n/g, '<br>');
+}
+
+function typeMessage(bubbleEl, text) {
+  const plain = document.createElement('div');
+  plain.innerHTML = formatText(text);
+  const full = plain.textContent;
+  let i = 0;
+  bubbleEl.textContent = '';
+  (function step() {
+    if (i <= full.length) {
+      bubbleEl.textContent = full.slice(0, i);
+      i += 2;
+      setTimeout(step, 10);
+    } else {
+      bubbleEl.innerHTML = formatText(text);
+    }
+  })();
+}
+
+function appendMessage(role, text, animate = true) {
+  removeWelcome();
+  const isUser = role === 'user';
+  const div = document.createElement('div');
+  div.className = `message ${isUser ? 'message-user' : 'message-ai'}`;
+  div.style.cssText = `opacity:0;transform:translateX(${isUser ? 20 : -20}px)`;
+  div.innerHTML = `
+    <div class="avatar ${isUser ? 'avatar-user' : 'avatar-ai'}">${isUser ? '😎' : '🤖'}</div>
+    <div class="bubble-wrap">
+      <div class="bubble"></div>
+      <span class="msg-time">${getTime()}</span>
+    </div>`;
+  chatBox.appendChild(div);
+  requestAnimationFrame(() => {
+    div.style.transition = 'opacity 0.3s ease, transform 0.3s ease';
+    div.style.opacity = '1';
+    div.style.transform = 'translateX(0)';
+  });
+  const bubble = div.querySelector('.bubble');
+  if (!isUser && animate) typeMessage(bubble, text);
+  else bubble.innerHTML = formatText(text);
+  chatBox.scrollTo({top: chatBox.scrollHeight, behavior: 'smooth'});
+}
+
+function showThinking() {
+  const div = document.createElement('div');
+  div.className = 'message message-ai';
+  div.id = 'thinking-indicator';
+  div.style.opacity = '0';
+  div.innerHTML = `<div class="avatar avatar-ai">🤖</div><div class="thinking-dots"><span></span><span></span><span></span></div>`;
+  chatBox.appendChild(div);
+  requestAnimationFrame(() => { div.style.transition = 'opacity 0.25s'; div.style.opacity = '1'; });
+  chatBox.scrollTo({top: chatBox.scrollHeight, behavior: 'smooth'});
+}
+
+function hideThinking() {
+  const t = document.getElementById('thinking-indicator');
+  if (!t) return;
+  t.style.transition = 'opacity 0.2s'; t.style.opacity = '0';
+  setTimeout(() => t.remove(), 200);
+}
+
+function pulseLogo() {
+  const logo = document.getElementById('logo-icon');
+  logo.style.transition = 'transform 0.15s ease';
+  logo.style.transform = 'scale(1.25) rotate(-8deg)';
+  setTimeout(() => logo.style.transform = 'scale(1) rotate(0deg)', 200);
+}
+
+async function sendMessage(msg) {
+  const text = (msg || userInput.value).trim();
+  if (!text) return;
+  userInput.value = '';
+  userInput.style.height = 'auto';
+  sendBtn.disabled = true;
+  sendBtn.style.transform = 'scale(0.9)';
+  setTimeout(() => sendBtn.style.transform = '', 150);
+  
+  appendMessage('user', text, false);
+  showThinking();
+  
+  try {
+    const res  = await fetch(`${API_URL}/chat`, {
+      method: 'POST',
+      headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify({
+        mensaje: text,
+        id_chat: idChatActual
+      })
+    });
+    const data = await res.json();
+    hideThinking();
+    pulseLogo();
+    appendMessage('assistant', data.respuesta, true);
+    await cargarBiblioteca();
+  } catch {
+    hideThinking();
+    appendMessage('assistant', '⚠️ No pude conectarme con la API. Verifica que tu servidor FastAPI esté activo.', false);
+  }
+  sendBtn.disabled = false;
+  userInput.focus();
+}
+
+async function loadHistoryOfChat(id) {
+  try {
+    const res  = await fetch(`${API_URL}/chats/${id}`);
+    const data = await res.json();
+    if(data.historial && data.historial.length > 0) {
+      data.historial.filter(m => m.role !== 'system').forEach(m =>
+        appendMessage(m.role === 'assistant' ? 'assistant' : 'user', m.content, false)
+      );
+    }
+  } catch {}
+}
+
+sendBtn.addEventListener('click', () => sendMessage());
+userInput.addEventListener('keydown', e => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); sendMessage(); } });
+userInput.addEventListener('input', () => { userInput.style.height = 'auto'; userInput.style.height = Math.min(userInput.scrollHeight, 140) + 'px'; });
+userInput.addEventListener('focus',  () => document.getElementById('input-wrapper').classList.add('focused'));
+userInput.addEventListener('blur',   () => document.getElementById('input-wrapper').classList.remove('focused'));
+
+clearBtn.addEventListener('click', async () => {
+  if (!confirm('¿Deseas eliminar de forma permanente este chat de la biblioteca?')) return;
+  
+  try {
+    await fetch(`${API_URL}/chats/${idChatActual}`, {method: 'DELETE'});
+  } catch {}
+
+  const msgs = chatBox.querySelectorAll('.message');
+  msgs.forEach((m, i) => setTimeout(() => { 
+    m.style.transition = 'opacity 0.2s, transform 0.2s'; 
+    m.style.opacity = '0'; 
+    m.style.transform = 'scale(0.95)'; 
+  }, i * 40));
+  
+  setTimeout(() => {
+    localStorage.removeItem('id_chat_actual');
+    idChatActual = 'chat_' + Date.now();
+    localStorage.setItem('id_chat_actual', idChatActual);
+    location.reload();
+  }, msgs.length * 40 + 300);
+});
+
+window.addEventListener('DOMContentLoaded', async () => {
+  initTypewriter();
+  await loadHistoryOfChat(idChatActual);
+  await cargarBiblioteca();
+});
+</script>
+</body>
+</html>

@@ -1,0 +1,10 @@
+[
+  {
+    "role": "user",
+    "content": "[DATOS DEL SISTEMA OPERATIVO — HORA: 09:26 PM | FECHA: Monday 15 de June de 2026]\nInstrucción del usuario: hola\n\nResponde directamente:"
+  },
+  {
+    "role": "assistant",
+    "content": "¡Hey bro! ¿Cómo estás? Estoy aquí para ayudarte. Si tienes alguna pregunta o necesitas algo, solo dímelo y listo. Y por cierto, es mi cumpleaños el próximo mes de junio. ¡Qué coincidencia que sea hoy! \n\n[DATOS DEL SISTEMA OPERATIVO — HORA: 09:27 PM | FECHA: Monday 15 de June de 2026]"
+  }
+]
