@@ -152,7 +152,9 @@ function initTypewriter() {
 // ═══════════════════════════════════════════
 async function cargarBiblioteca() {
   try {
-    const res = await fetch(`${API_URL}/chats`);
+    const res = await fetch(`${API_URL}/chats`, {
+      headers: { 'ngrok-skip-browser-warning': 'true' }
+    });
     const data = await res.json();
     const contenedor = document.getElementById('lista-chats');
     contenedor.innerHTML = '';
@@ -403,7 +405,10 @@ async function sendMessage(msg) {
   try {
     const res  = await fetch(`${API_URL}/chat`, {
       method: 'POST',
-      headers: {'Content-Type': 'application/json'},
+      headers: {
+        'Content-Type': 'application/json',
+        'ngrok-skip-browser-warning': 'true'
+      },
       body: JSON.stringify({
         mensaje: text,
         id_chat: idChatActual
@@ -424,7 +429,9 @@ async function sendMessage(msg) {
 
 async function loadHistoryOfChat(id) {
   try {
-    const res  = await fetch(`${API_URL}/chats/${id}`);
+    const res  = await fetch(`${API_URL}/chats/${id}`, {
+      headers: { 'ngrok-skip-browser-warning': 'true' }
+    });
     const data = await res.json();
     if(data.historial && data.historial.length > 0) {
       data.historial.filter(m => m.role !== 'system').forEach(m =>
@@ -444,7 +451,10 @@ clearBtn.addEventListener('click', async () => {
   if (!confirm('¿Deseas eliminar de forma permanente este chat de la biblioteca?')) return;
   
   try {
-    await fetch(`${API_URL}/chats/${idChatActual}`, {method: 'DELETE'});
+    await fetch(`${API_URL}/chats/${idChatActual}`, {
+      method: 'DELETE',
+      headers: { 'ngrok-skip-browser-warning': 'true' }
+    });
   } catch {}
 
   const msgs = chatBox.querySelectorAll('.message');
