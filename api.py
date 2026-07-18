@@ -1,8 +1,8 @@
 from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel
 import requests
-import time
 
 app = FastAPI()
 
@@ -10,14 +10,14 @@ app = FastAPI()
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],
-    allow_credentials=True,
+    allow_credentials=False,
     allow_methods=["*"],
     allow_headers=["*"],
 )
 
-# Configuración de Ollama (Ajusta 'llama3' por el modelo que tengas descargado)
+# Configuración de Ollama (ajusta el modelo al que tengas instalado)
 OLLAMA_URL = "http://localhost:11434/api/chat"
-MODEL_NAME = "llama3"
+MODEL_NAME = "llama3:latest"
 
 
 SYSTEM_PROMPT = (
@@ -99,6 +99,11 @@ def eliminar_chat(id_chat: str):
         return {"status": "eliminado"}
     return {"status": "no encontrado"}
 
+# IMPORTANTE: este mount va AL FINAL, después de todas las rutas de la API.
+# Si va antes, "se come" las peticiones a /chats, /chat, etc. y nunca llegan
+# a las funciones de arriba (por eso daba 404 en GET y 405 en POST).
+app.mount("/", StaticFiles(directory=".", html=True), name="static")
+
 if __name__ == "__main__":
     import uvicorn
-    uvicorn.run("main:app", host="127.0.0.1", port=8000, reload=True)
+    uvicorn.run("api:app", host="0.0.0.0", port=8000, reload=False)
